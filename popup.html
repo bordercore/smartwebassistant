@@ -8,6 +8,21 @@
     <link href="lib/all.min.css" rel="stylesheet" />
 
     <style>
+      body, container, .form-select {
+        background-color: #10173c;
+        color: #fff;
+      }
+      textarea, .markdown-content, .form-control {
+        background-color: #3e3e6b !important;
+        color: #fff !important;
+      }
+      .input-group-text {
+        background-color: #10173c !important;
+        color: #fff !important;
+      }
+      #config, #toggleSidebarButton {
+        background-color: #0b5ed7;
+      }
       table {
         width: 100%; /* Sets the table to take the full width of its container */
         border-collapse: collapse; /* Removes space between borders */
@@ -122,13 +137,13 @@
   </head>
   <body style="width: 300px; font-size: small">
     <div class="container">
-      <nav class="navbar navbar-light bg-light">
-        <span class="navbar-brand mb-0 h1">Smart Web Assistant!</span>
+      <nav class="navbar navbar-dark">
+        <span class="navbar-brand mb-0 h1">Smart Web Assistant</span>
         <div
           id="toggleSidebarButton"
           class="div-pointer"
           title="Toggle SidePanel"
-          style="padding-right: 5px"
+          style="padding-right: 5px; margin-right: 5px"
         >
           <img
             src="images/layout-sidebar-reverse.svg"
@@ -211,7 +226,7 @@
 
       <div class="input-group mb-1">
         <button
-          class="btn btn-outline-success btn-sm"
+          class="btn btn-primary btn-sm"
           type="button"
           id="submitCustomPromptButton"
         >
@@ -227,7 +242,7 @@
           <option value="Russian">Response - Russian</option>
         </select>
         <button
-          class="btn btn-outline-success btn-sm"
+          class="btn btn-primary btn-sm"
           type="button"
           id="speakButton"
         >
