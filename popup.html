@@ -123,7 +123,7 @@
   <body style="width: 300px; font-size: small">
     <div class="container">
       <nav class="navbar navbar-light bg-light">
-        <span class="navbar-brand mb-0 h1">Smart Web Assistant</span>
+        <span class="navbar-brand mb-0 h1">Smart Web Assistant!</span>
         <div
           id="toggleSidebarButton"
           class="div-pointer"
@@ -226,6 +226,14 @@
           <option value="Japanese">Response - Japanese</option>
           <option value="Russian">Response - Russian</option>
         </select>
+        <button
+          class="btn btn-outline-success btn-sm"
+          type="button"
+          id="speakButton"
+        >
+          TTS
+        </button>
+
       </div>
       <div class="form-check form-switch">
         <input
@@ -373,6 +381,16 @@
             placeholder="What is it?"
           />
           <span id="storedPrompt5Storage" class="storage-value"></span>
+        </div>
+        <div class="mb-1">
+          <label class="form-label margin-bottom-1px">TTS Host</label>
+          <input
+            type="text"
+            class="form-control"
+            id="ttsHostInput"
+            placeholder="What is it?"
+          />
+          <span id="ttsHostStorage" class="storage-value"></span>
         </div>
         <button class="btn btn-success btn-sm" id="saveApiUrlButton">
           Save

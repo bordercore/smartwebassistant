@@ -2,7 +2,7 @@
 
 import {updateStatus, isValidUrl, consoleLog, LOG_LEVELS} from './utils.js';
 import {testApiConnection} from './api.js';
-import {handlePromptSubmission} from './prompts.js';
+import {handlePromptSubmission, speak} from './prompts.js';
 
 export function initUI () {
   //1. Button to show or hide the configuration popup
@@ -75,6 +75,9 @@ export function initUI () {
   const submitCustomPromptButton = document.getElementById (
     'submitCustomPromptButton'
   );
+  const speakButton = document.getElementById (
+    'speakButton'
+  );
   const storedPromptButtons = [
     document.getElementById ('storedPrompt1Button'),
     document.getElementById ('storedPrompt2Button'),
@@ -125,6 +128,7 @@ export function initUI () {
       'storedPrompt3',
       'storedPrompt4',
       'storedPrompt5',
+      'ttsHost',
     ],
     function (result) {
       apiUrlInput.value =
@@ -229,6 +233,7 @@ export function initUI () {
         storedPrompt3: storedPrompt3Input.value,
         storedPrompt4: storedPrompt4Input.value,
         storedPrompt5: storedPrompt5Input.value,
+        ttsHost: ttsHostInput.value,
       },
       () => {
         document.getElementById (
@@ -312,6 +317,10 @@ export function initUI () {
     consoleLog ('Custom prompt saved:' + customPrompt, LOG_LEVELS.DEBUG);
 
     handlePromptSubmission (customPrompt, selectedLanguage);
+  });
+
+  speakButton.addEventListener ('click', () => {
+    speak();
   });
 
   testConnectionButton.addEventListener ('click', () => {

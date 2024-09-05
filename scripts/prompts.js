@@ -47,3 +47,82 @@ export function handlePromptSubmission (prompt, language, currentController) {
   }
   updateStatus ('Submitting prompt: ' + prompt);
 }
+
+function splitIntoChunks(text, chunkSize) {
+  const paragraphs = text.split(/\n+/); // Split the text into paragraphs based on new lines
+  let chunks = [];
+  let currentChunk = "";
+
+  paragraphs.forEach(paragraph => {
+    if (currentChunk.length + paragraph.length + 1 <= chunkSize) {
+      // If adding the paragraph won't exceed the chunk size, add it
+      if (currentChunk) currentChunk += "\n"; // Add a newline if it's not the first paragraph in the chunk
+      currentChunk += paragraph;
+    } else {
+      // If adding the paragraph exceeds the chunk size, save the current chunk and start a new one
+      chunks.push(currentChunk);
+      currentChunk = paragraph;
+    }
+  });
+
+  // Add the last chunk if it exists
+  if (currentChunk) chunks.push(currentChunk);
+
+  return chunks;
+}
+
+function playAudioSequentially(audioElements) {
+  // Initialize a promise chain
+  let promiseChain = Promise.resolve();
+
+  audioElements.forEach(audioElement => {
+    promiseChain = promiseChain
+      .then(() => {
+        // Start playing the current audio element
+        return audioElement.play();
+      })
+      .then(() => {
+        // Wait for the current audio to finish playing before proceeding
+        return new Promise(resolve => {
+          audioElement.addEventListener('ended', resolve, { once: true });
+        });
+      })
+      .catch(error => {
+        console.error("Error playing audio:", error);
+        // Continue the chain even if an error occurs
+        return Promise.resolve();
+      });
+  });
+}
+
+export function speak (prompt, language, currentController) {
+  chrome.tabs.query ({active: true, currentWindow: true}, function (tabs) {
+    if (tabs[0] && tabs[0].id) {
+      extractWebpageText (tabs[0].id, text => {
+        updateStatus ('Speaking');
+
+        chrome.storage.local.get(
+          ['ttsHost'],
+          async function (settings) {
+            const ttsHost = settings.ttsHost;
+            const ttsVoice = "valerie.wav";
+            const outputFile = "stream_output.wav";
+
+            const chunkSize = 200;
+            const chunks = splitIntoChunks(text, chunkSize);
+
+            let streamingUrl = null;
+            let audioChunks = [];
+            chunks.forEach((chunk, index) => {
+              streamingUrl = `http://${ttsHost}/api/tts-generate-streaming?text=${chunk}&voice=${ttsVoice}&language=en&output_file=${outputFile}`;
+              const audioElement = new Audio(`audio_${index}`);
+              audioElement.crossOrigin = "anonymous";
+              audioElement.src = streamingUrl;
+              audioChunks.push(audioElement);
+            });
+            playAudioSequentially(audioChunks);
+          });
+      });
+    }
+  });
+}
