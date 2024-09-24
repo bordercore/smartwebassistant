@@ -1,6 +1,6 @@
-// contentExtraction.js
 import {consoleLog, LOG_LEVELS} from './utils.js';
 import {updateStatus} from './utils.js';
+import {updateStatus as updateStatusBackground} from '../background.js';
 
 export function extractWebpageText (tabId, processFunction) {
   updateStatus ('Extracting text from the webpage...');
@@ -16,4 +16,22 @@ export function extractWebpageText (tabId, processFunction) {
 
 function handleResponseError (operation) {
   updateStatus (`Please refresh the webpage of active tab.`);
+}
+
+export function extractWebpageTextAPI (tabUrl, processFunction) {
+  updateStatusBackground ('Extracting text from the webpage...');
+  chrome.storage.local.get(
+    ['textExtractionHost', 'textExtractionToken'],
+    async function (settings) {
+      fetch(`https://${settings.textExtractionHost}/api/extract_text?url=` + encodeURIComponent(tabUrl),
+            {
+              headers: {
+                'Authorization': 'Token ' + settings.textExtractionToken,
+              }
+            })
+        .then(response => response.json())
+        .then(data => processFunction (data["text"]))
+        .catch(error => console.error('Error:', error));
+    }
+  );
 }

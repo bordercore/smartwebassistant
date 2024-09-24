@@ -244,7 +244,7 @@
         <button
           class="btn btn-primary btn-sm"
           type="button"
-          id="speakButton"
+          id="ttsButton"
         >
           TTS
         </button>
@@ -403,9 +403,29 @@
             type="text"
             class="form-control"
             id="ttsHostInput"
-            placeholder="What is it?"
+            placeholder="Text-to-Speech Host"
           />
           <span id="ttsHostStorage" class="storage-value"></span>
+        </div>
+        <div class="mb-1">
+          <label class="form-label margin-bottom-1px">Text Extraction Host</label>
+          <input
+            type="text"
+            class="form-control"
+            id="textExtractionHostInput"
+            placeholder="Text Extraction Host"
+          />
+          <span id="textExtractionHostStorage" class="storage-value"></span>
+        </div>
+        <div class="mb-1">
+          <label class="form-label margin-bottom-1px">Text Extraction Token</label>
+          <input
+            type="text"
+            class="form-control"
+            id="textExtractionTokenInput"
+            placeholder="Text Extraction Token"
+          />
+          <span id="textExtractionTokenStorage" class="storage-value"></span>
         </div>
         <button class="btn btn-success btn-sm" id="saveApiUrlButton">
           Save

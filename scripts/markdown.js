@@ -28,8 +28,16 @@ const converter = new showdown.Converter ({
   extensions: ['codeblocks'],
 });
 
-const markdownContent = document.getElementById ('markdownContent');
 let contentBuffer = ''; // Buffer to hold Markdown content until ready for conversion
+// let markdownContent;
+// chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+//   const activeTabId = tabs[0].id;
+//   chrome.tabs.sendMessage(activeTabId, {type: 'fromBackground', action: 'getMarkdownContent'}, (response) => {
+//     if (response) {
+//       contentBuffer = response.markdownContent;
+//     }
+//   });
+// });
 
 export function displayMarkdown (forceDisplay = false) {
   if (!forceDisplay) {

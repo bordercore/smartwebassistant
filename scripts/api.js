@@ -5,19 +5,19 @@ import {initMarkdown, appendMarkdown, displayMarkdown} from './markdown.js';
 let currentController = null;
 let requestCancelled = true;
 
-cancelButton.addEventListener ('click', () => {
-  consoleLog ('Cancelling the request...', LOG_LEVELS.DEBUG);
-  if (currentController && currentController instanceof AbortController) {
-    consoleLog ('Request aborted.', LOG_LEVELS.DEBUG);
-    currentController.abort ();
-    currentController = null;
-    requestCancelled = true;
-    updateStatus ('Request cancelled.');
-    cancelButton.style.display = 'none';
-  } else {
-    consoleLog ('No request to cancel.', LOG_LEVELS.DEBUG);
-  }
-});
+// cancelButton.addEventListener ('click', () => {
+//   consoleLog ('Cancelling the request...', LOG_LEVELS.DEBUG);
+//   if (currentController && currentController instanceof AbortController) {
+//     consoleLog ('Request aborted.', LOG_LEVELS.DEBUG);
+//     currentController.abort ();
+//     currentController = null;
+//     requestCancelled = true;
+//     updateStatus ('Request cancelled.');
+//     cancelButton.style.display = 'none';
+//   } else {
+//     consoleLog ('No request to cancel.', LOG_LEVELS.DEBUG);
+//   }
+// });
 
 /**
  * Fetches a response from the OpenAI API.

@@ -38,3 +38,26 @@ export function isValidUrl (url) {
   ); // fragment locator
   return !!pattern.test (url);
 }
+
+export function splitIntoChunks (text, chunkSize) {
+  const paragraphs = text.split(/\n+/); // Split the text into paragraphs based on new lines
+  let chunks = [];
+  let currentChunk = '';
+
+  paragraphs.forEach(paragraph => {
+    if (currentChunk.length + paragraph.length + 1 <= chunkSize) {
+      // If adding the paragraph won't exceed the chunk size, add it
+      if (currentChunk) currentChunk += '\n'; // Add a newline if it's not the first paragraph in the chunk
+      currentChunk += paragraph;
+    } else {
+      // If adding the paragraph exceeds the chunk size, save the current chunk and start a new one
+      chunks.push(currentChunk);
+      currentChunk = paragraph;
+    }
+  });
+
+  // Add the last chunk if it exists
+  if (currentChunk) chunks.push(currentChunk);
+
+  return chunks;
+}

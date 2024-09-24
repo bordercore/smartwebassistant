@@ -2,7 +2,7 @@
 
 import {updateStatus, isValidUrl, consoleLog, LOG_LEVELS} from './utils.js';
 import {testApiConnection} from './api.js';
-import {handlePromptSubmission, speak} from './prompts.js';
+import {handlePromptSubmission} from './prompts.js';
 
 export function initUI () {
   //1. Button to show or hide the configuration popup
@@ -75,8 +75,8 @@ export function initUI () {
   const submitCustomPromptButton = document.getElementById (
     'submitCustomPromptButton'
   );
-  const speakButton = document.getElementById (
-    'speakButton'
+  const ttsButton = document.getElementById (
+    'ttsButton'
   );
   const storedPromptButtons = [
     document.getElementById ('storedPrompt1Button'),
@@ -129,6 +129,8 @@ export function initUI () {
       'storedPrompt4',
       'storedPrompt5',
       'ttsHost',
+      'textExtractionHost',
+      'textExtractionToken',
     ],
     function (result) {
       apiUrlInput.value =
@@ -157,6 +159,24 @@ export function initUI () {
       document.getElementById (
         'topPStorage'
       ).textContent = `(Stored: ${result.topP || 'None'})`;
+
+      ttsHostInput.value =
+        result.ttsHost || '';
+      document.getElementById (
+        'ttsHostInput'
+      ).textContent = `(Stored: ${result.ttsHost || 'None'})`;
+
+      textExtractionHostInput.value =
+        result.textExtractionHost || '';
+      document.getElementById (
+        'textExtractionHostInput'
+      ).textContent = `(Stored: ${result.textExtractionHost || 'None'})`;
+
+      textExtractionTokenInput.value =
+        result.textExtractionToken || '';
+      document.getElementById (
+        'textExtractionTokenInput'
+      ).textContent = `(Stored: ${result.textExtractionToken || 'None'})`;
 
       // Load stored prompts from local storage in a loop
       storedPromptInputs.forEach ((input, index) => {
@@ -234,6 +254,8 @@ export function initUI () {
         storedPrompt4: storedPrompt4Input.value,
         storedPrompt5: storedPrompt5Input.value,
         ttsHost: ttsHostInput.value,
+        textExtractionHost: textExtractionHostInput.value,
+        textExtractionToken: textExtractionTokenInput.value,
       },
       () => {
         document.getElementById (
@@ -319,10 +341,6 @@ export function initUI () {
     handlePromptSubmission (customPrompt, selectedLanguage);
   });
 
-  speakButton.addEventListener ('click', () => {
-    speak();
-  });
-
   testConnectionButton.addEventListener ('click', () => {
     const apiUrl = apiUrlInput.value;
     if (!isValidUrl (apiUrl)) {
@@ -331,4 +349,15 @@ export function initUI () {
     }
     testApiConnection (apiUrl);
   });
+
+  ttsButton.addEventListener ('click', () => {
+    chrome.runtime.sendMessage({action: 'tts'});
+  });
+
+  // Connect the popup to the background service worker.
+  let backgroundPort = chrome.runtime.connect({ name: 'popup' });
+  backgroundPort.onMessage.addListener((msg) => {
+    document.getElementById('status').textContent = msg.message;
+  });
+
 }

@@ -3,12 +3,13 @@
   "name": "Smart Web Assistant",
   "version": "1.2",
   "description": "Smart Web Assistant is a Chrome extension that enhances your browsing with AI-powered insights from both cloud and local models.",
-  "permissions": ["activeTab", "storage", "sidePanel"],
+  "permissions": ["activeTab", "scripting", "sidePanel", "storage"],
   "action": {
     "default_popup": "popup.html"
   },
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "type": "module"
   },
   "content_scripts": [
     {
