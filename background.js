@@ -39,8 +39,7 @@ export function tts (prompt, language, currentController) {
         chrome.storage.local.get(
           ['ttsHost', 'ttsSpeed'],
           async function (settings) {
-            const chunkSize = 200;
-            const chunks = splitIntoChunks(text, chunkSize);
+            const chunks = splitIntoChunks(text);
             const activeTabId = tabs[0].id;
             chrome.tabs.sendMessage(
               activeTabId, {

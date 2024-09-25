@@ -43,7 +43,7 @@ export function isValidUrl (url) {
   return !!pattern.test (url);
 }
 
-export function splitIntoChunks (text, chunkSize) {
+export function splitIntoChunks (text, chunkSize=200) {
   const paragraphs = text.split(/\n+/); // Split the text into paragraphs based on new lines
   let chunks = [];
   let currentChunk = '';
