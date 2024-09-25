@@ -366,7 +366,13 @@ export function initUI () {
   // Connect the popup to the background service worker.
   let backgroundPort = chrome.runtime.connect({ name: 'popup' });
   backgroundPort.onMessage.addListener((msg) => {
-    document.getElementById('status').textContent = msg.message;
+    const statusDisplay = document.getElementById ('status');
+    if (msg.level === LOG_LEVELS.ERROR) {
+      statusDisplay.classList.add("text-danger");
+    } else {
+      statusDisplay.classList.remove("text-danger");
+    }
+    statusDisplay.textContent = msg.message;
   });
 
 }

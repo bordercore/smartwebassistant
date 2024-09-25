@@ -1,9 +1,12 @@
 import {extractWebpageTextAPI} from './scripts/contentExtraction.js'
-import {splitIntoChunks} from './scripts/utils.js';
+import {LOG_LEVELS, splitIntoChunks} from './scripts/utils.js';
 
 chrome.runtime.onMessage.addListener ((message, sender, sendResponse) => {
   if (message.action === 'tts') {
     tts();
+  } else if (message.action === 'updateStatus') {
+    const level = message.type === "error" ? LOG_LEVELS.ERROR : LOG_LEVELS.INFO;
+    updateStatus(message.status, level);
   }
 });
 
@@ -22,9 +25,9 @@ chrome.runtime.onConnect.addListener((port) => {
 });
 
 // Update the popup's status field by sending it a message
-export function updateStatus (message) {
+export function updateStatus (message, level = LOG_LEVELS.INFO) {
   if (popupPort) {
-    popupPort.postMessage({ message: message });
+    popupPort.postMessage({ message: message, level: level });
   } else {
     console.log("Popup is not connected. Message not sent:", message);
   }
