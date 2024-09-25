@@ -37,12 +37,17 @@ export function tts (prompt, language, currentController) {
         updateStatus ('Speaking');
 
         chrome.storage.local.get(
-          ['ttsHost'],
+          ['ttsHost', 'ttsSpeed'],
           async function (settings) {
             const chunkSize = 200;
             const chunks = splitIntoChunks(text, chunkSize);
             const activeTabId = tabs[0].id;
-            chrome.tabs.sendMessage(activeTabId, {action: 'streamAudio', ttsHost: settings.ttsHost, chunks: chunks}, () => {
+            chrome.tabs.sendMessage(
+              activeTabId, {
+                action: 'streamAudio',
+                chunks: chunks,
+                settings: settings
+              }, () => {
               if (chrome.runtime.lastError) {
                 updateStatus(chrome.runtime.lastError.message);
                 console.log(`Error sending message: ${chrome.runtime.lastError.message}`);

@@ -17,7 +17,13 @@
       "js": ["content.js"]
     }
   ],
-  "side_panel": {
+  "web_accessible_resources": [
+    {
+      "resources": ["scripts/utils.js"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+"side_panel": {
     "default_path": "sidepanel.html"
   }
 }

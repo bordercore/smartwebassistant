@@ -1,3 +1,15 @@
+let ttsSpeedDefault;
+
+(async function() {
+  try {
+    const src = chrome.runtime.getURL('scripts/utils.js');
+    const module = await import(src);
+    ttsSpeedDefault = module.ttsSpeedDefault;
+  } catch (error) {
+    console.error('Error loading module:', error);
+  }
+})();
+
 // chrome.runtime.onMessage.addListener (function (request, sender, sendResponse) {
 //   if (request.action === 'getText') {
 //     if (window.location.href.startsWith ('https://docs.google.com')) {
@@ -43,7 +55,8 @@ chrome.runtime.onMessage.addListener ((message, sender, sendResponse) => {
     sendResponse({markdownContent: markdownContent.value});
   } else if (message.action === 'streamAudio') {
     const chunks = message.chunks;
-    const ttsHost = message.ttsHost;
+    const ttsHost = message.settings.ttsHost;
+    const ttsSpeed = message.settings.ttsSpeed || ttsSpeedDefault;
     const ttsVoice = 'female_07.wav';
     const outputFile = 'stream_output.wav';
 
@@ -54,9 +67,8 @@ chrome.runtime.onMessage.addListener ((message, sender, sendResponse) => {
     chunks.forEach((chunk, index) => {
       streamingUrl = `https://${ttsHost}/api/tts-generate-streaming?text=${chunk}&voice=${ttsVoice}&language=en&output_file=${outputFile}`;
       audioElement = new Audio(`audio_${index}`);
-      audioElement.crossOrigin = 'anonymous';
-      audioElement.playbackRate = 1.2;
       audioElement.src = streamingUrl;
+      audioElement.playbackRate = ttsSpeed;
       audioChunks.push(audioElement);
     });
     playAudioSequentially(audioChunks);

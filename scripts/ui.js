@@ -3,6 +3,7 @@
 import {updateStatus, isValidUrl, consoleLog, LOG_LEVELS} from './utils.js';
 import {testApiConnection} from './api.js';
 import {handlePromptSubmission} from './prompts.js';
+import {ttsSpeedDefault} from './utils.js';
 
 export function initUI () {
   //1. Button to show or hide the configuration popup
@@ -131,6 +132,7 @@ export function initUI () {
       'ttsHost',
       'textExtractionHost',
       'textExtractionToken',
+      'ttsSpeed'
     ],
     function (result) {
       apiUrlInput.value =
@@ -177,6 +179,12 @@ export function initUI () {
       document.getElementById (
         'textExtractionTokenInput'
       ).textContent = `(Stored: ${result.textExtractionToken || 'None'})`;
+
+      ttsSpeedInput.value =
+        result.ttsSpeed || ttsSpeedDefault;
+      document.getElementById (
+        'ttsSpeedInput'
+      ).textContent = `(Stored: ${result.ttsSpeed || 'None'})`;
 
       // Load stored prompts from local storage in a loop
       storedPromptInputs.forEach ((input, index) => {
@@ -256,6 +264,7 @@ export function initUI () {
         ttsHost: ttsHostInput.value,
         textExtractionHost: textExtractionHostInput.value,
         textExtractionToken: textExtractionTokenInput.value,
+        ttsSpeed: ttsSpeedInput.value,
       },
       () => {
         document.getElementById (

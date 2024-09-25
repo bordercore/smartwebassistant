@@ -1,3 +1,7 @@
+// Defaults
+const ttsSpeedDefault = 1.2;
+export {ttsSpeedDefault};
+
 // Log levels
 export const LOG_LEVELS = {
   ERROR: 1,
