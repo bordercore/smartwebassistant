@@ -49,11 +49,14 @@ let ttsSpeedDefault;
 //   (document.head || document.documentElement).appendChild (s);
 // }
 
+let currentAudio;
+
 chrome.runtime.onMessage.addListener ((message, sender, sendResponse) => {
   if (message.action === 'getMarkdownContent') {
     const markdownContent = document.getElementById('markdownContent');
     sendResponse({markdownContent: markdownContent.value});
   } else if (message.action === 'streamAudio') {
+    sendResponse();
     const chunks = message.chunks;
     const ttsHost = message.settings.ttsHost;
     const ttsSpeed = message.settings.ttsSpeed || ttsSpeedDefault;
@@ -73,8 +76,12 @@ chrome.runtime.onMessage.addListener ((message, sender, sendResponse) => {
       audioChunks.push(audioElement);
     });
     playAudioSequentially(audioChunks);
+    return true;
+  } else if (message.action === 'ttsPause') {
+    currentAudio.pause();
+  } else if (message.action === 'ttsPlay') {
+    currentAudio.play();
   }
-  sendResponse();
 });
 
 function playAudioSequentially (audioElements) {
@@ -85,6 +92,7 @@ function playAudioSequentially (audioElements) {
     promiseChain = promiseChain
       .then(() => {
         // Start playing the current audio element
+        currentAudio = audioElement;
         return audioElement.play();
       })
       .then(() => {

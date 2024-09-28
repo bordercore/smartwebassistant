@@ -30,9 +30,6 @@ export function initUI () {
     // Hide the toggle sidebar button if in an iframe
     if (toggleSidebarButton) {
       toggleSidebarButton.style.display = 'none';
-      console.log (
-        'Toggle sidebar button hidden because it is inside an iframe.'
-      );
     }
   }
 
@@ -67,7 +64,6 @@ export function initUI () {
     // This code runs if the page is in an iframe
     if (markdownContent) {
       markdownContent.style.height = '480px'; // Adjust the height as needed
-      console.log ('Adjusted markdownContent height for iframe usage.');
     }
 
     document.body.style.width = '100%'; // Adjust the width as needed
@@ -359,8 +355,36 @@ export function initUI () {
     testApiConnection (apiUrl);
   });
 
+  let isPlaying = false;
+
   ttsButton.addEventListener ('click', () => {
-    chrome.runtime.sendMessage({action: 'tts'});
+    const buttonValue = document.getElementById('ttsButton').textContent;
+    if (buttonValue === 'Play') {
+      document.getElementById('ttsButton').textContent = 'Pause';
+      if (isPlaying) {
+        chrome.tabs.query ({active: true, currentWindow: true}, (tabs) => {
+        const activeTabId = tabs[0].id;
+        chrome.tabs.sendMessage(activeTabId, {action: 'ttsPlay'});
+        if (chrome.runtime.lastError) {
+          updateStatus(chrome.runtime.lastError.message);
+          console.log(`Error sending message: ${chrome.runtime.lastError.message}`);
+        }
+      });
+      } else {
+        isPlaying = true;
+        chrome.runtime.sendMessage({action: 'tts'});
+      }
+    } else {
+      document.getElementById('ttsButton').textContent = 'Play';
+      chrome.tabs.query ({active: true, currentWindow: true}, (tabs) => {
+        const activeTabId = tabs[0].id;
+        chrome.tabs.sendMessage(activeTabId, {action: 'ttsPause'});
+        if (chrome.runtime.lastError) {
+          updateStatus(chrome.runtime.lastError.message);
+          console.log(`Error sending message: ${chrome.runtime.lastError.message}`);
+        }
+      });
+    }
   });
 
   // Connect the popup to the background service worker.
