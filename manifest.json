@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Smart Web Assistant",
+  "name": "Bordercore AI Smart Web Assistant",
   "version": "1.2",
-  "description": "Smart Web Assistant is a Chrome extension that enhances your browsing with AI-powered insights from both cloud and local models.",
+  "description": "Bordercore AI Smart Web Assistant is a Chrome extension that enhances your browsing with AI-powered insights from both cloud and local models.",
   "permissions": ["activeTab", "scripting", "sidePanel", "storage"],
   "action": {
     "default_popup": "popup.html"

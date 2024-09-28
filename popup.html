@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Smart Web Assistant</title>
+    <title>Bordercore AI</title>
     <link href="lib/bootstrap.min.css" rel="stylesheet" />
     <link href="lib/all.min.css" rel="stylesheet" />
 
@@ -19,9 +19,6 @@
       .input-group-text {
         background-color: #10173c !important;
         color: #fff !important;
-      }
-      #config, #toggleSidebarButton {
-        background-color: #0b5ed7;
       }
       table {
         width: 100%; /* Sets the table to take the full width of its container */
@@ -83,7 +80,6 @@
       .form-control {
         max-width: 100%; /* Ensures input does not exceed its container */
         width: 70%; /* Adjust this to reduce input field width as needed */
-        border-radius: 0 !important;
         font-size: 12px; /* Specifically reduce font size for buttons */
       }
       span {
@@ -138,7 +134,7 @@
   <body style="width: 300px; font-size: small">
     <div class="container">
       <nav class="navbar navbar-dark">
-        <span class="navbar-brand mb-0 h1">Smart Web Assistant</span>
+        <span class="navbar-brand mb-0 h1">Bordercore AI</span>
         <div
           id="toggleSidebarButton"
           class="div-pointer"
@@ -159,96 +155,87 @@
           />
         </div>
       </nav>
-
-      <div class="btn-group d-flex mb-1" role="group">
-        <div class="input-group-prepend">
-          <span class="input-group-text">Shortcuts</span>
-        </div>
-        <button
-          type="button"
-          id="storedPrompt1Button"
-          class="btn btn-success flex-grow-1 btn-sm"
-          data-bs-toggle="tooltip"
-          data-bs-placement="top"
-        >
-          1
-        </button>
-        <button
-          type="button"
-          class="btn btn-success flex-grow-1 btn-sm"
-          id="storedPrompt2Button"
-          data-bs-toggle="tooltip"
-          data-bs-placement="top"
-        >
-          2
-        </button>
-        <button
-          type="button"
-          class="btn btn-success flex-grow-1 btn-sm"
-          id="storedPrompt3Button"
-          data-bs-toggle="tooltip"
-          data-bs-placement="top"
-        >
-          3
-        </button>
-        <button
-          type="button"
-          class="btn btn-success flex-grow-1 btn-sm"
-          id="storedPrompt4Button"
-          data-bs-toggle="tooltip"
-          data-bs-placement="top"
-        >
-          4
-        </button>
-        <button
-          type="button"
-          class="btn btn-success flex-grow-1 btn-sm"
-          id="storedPrompt5Button"
-          data-bs-toggle="tooltip"
-          data-bs-placement="top"
-        >
-          5
-        </button>
+      <hr class="mt-0" />
+      <div class="row">
+          <label class="col-3 col-form-label">Shortcuts</label>
+          <div class="col-9 d-flex justify-content-between">
+              <button
+                  type="button"
+                  id="storedPrompt1Button"
+                  class="btn btn-success flex-grow-1 btn-sm me-1"
+                  data-bs-toggle="tooltip"
+                  data-bs-placement="top"
+              >
+              1
+              </button>
+              <button
+                  type="button"
+                  class="btn btn-success flex-grow-1 btn-sm me-1"
+                  id="storedPrompt2Button"
+                  data-bs-toggle="tooltip"
+                  data-bs-placement="top"
+              >
+              2
+              </button>
+              <button
+                  type="button"
+                  class="btn btn-success flex-grow-1 btn-sm me-1"
+                  id="storedPrompt3Button"
+                  data-bs-toggle="tooltip"
+                  data-bs-placement="top"
+              >
+              3
+              </button>
+              <button
+                  type="button"
+                  class="btn btn-success flex-grow-1 btn-sm me-1"
+                  id="storedPrompt4Button"
+                  data-bs-toggle="tooltip"
+                  data-bs-placement="top"
+              >
+              4
+              </button>
+              <button
+                  type="button"
+                  class="btn btn-success flex-grow-1 btn-sm me-1"
+                  id="storedPrompt5Button"
+                  data-bs-toggle="tooltip"
+                  data-bs-placement="top"
+              >
+              5
+              </button>
+          </div>
       </div>
 
-      <div class="input-group mb-1">
-        <div class="input-group-prepend">
-          <span class="input-group-text">Query</span>
-        </div>
-        <textarea
-          class="form-control"
-          placeholder="Enter custom prompt"
-          id="customPromptInput"
-          aria-label="With textarea"
-        >
-        </textarea>
+      <div class="row">
+          <label class="col-3 col-form-label">Query</label>
+          <div class="col-9">
+              <textarea
+                  class="form-control w-100"
+                  placeholder="Enter custom prompt"
+                  id="customPromptInput"
+                  aria-label="With textarea"
+              >
+              </textarea>
+          </div>
       </div>
 
-      <div class="input-group mb-1">
-        <button
-          class="btn btn-primary btn-sm"
-          type="button"
-          id="submitCustomPromptButton"
-        >
-          Ask Your AI
-        </button>
-        <select class="form-select" id="languageSelect">
-          <option value="English">Response - English</option>
-          <option value="Chinese">Response - Chinese</option>
-          <option value="Spanish">Response - Spanish</option>
-          <option value="French">Response - French</option>
-          <option value="German">Response - German</option>
-          <option value="Japanese">Response - Japanese</option>
-          <option value="Russian">Response - Russian</option>
-        </select>
-        <button
-          class="btn btn-primary btn-sm"
-          type="button"
-          id="ttsButton"
-        >
-          TTS
-        </button>
-
+      <div class="row mt-2 mb-1">
+          <div class="offset-3 col-4 d-flex">
+              <button
+                  class="btn btn-primary btn-sm me-2"
+                  type="button"
+                  id="submitCustomPromptButton"
+              >Chat</button>
+          </div>
+          <div class="col-5 text-end">
+              <div class="d-inline-block">TTS</div>
+              <button
+                  class="btn btn-primary btn-sm ms-1"
+                  type="button"
+                  id="ttsButton"
+              >Play</button>
+          </div>
       </div>
       <div class="form-check form-switch">
         <input
@@ -307,7 +294,7 @@
           <label class="form-label margin-bottom-1px">Model Name</label>
           <input
             type="text"
-            class="form-control"
+            class="form-control w-100"
             id="modelNameInput"
             placeholder="Model Name"
           />
@@ -317,7 +304,7 @@
           <label class="form-label margin-bottom-1px">* Max Tokens</label>
           <input
             type="text"
-            class="form-control"
+            class="form-control w-100"
             id="maxTokenInput"
             placeholder="4096"
           />
@@ -327,7 +314,7 @@
           <label class="form-label margin-bottom-1px">* Temperature</label>
           <input
             type="text"
-            class="form-control"
+            class="form-control w-100"
             id="temperatureInput"
             placeholder="0.7"
           />
@@ -337,7 +324,7 @@
           <label class="form-label margin-bottom-1px">* Top P</label>
           <input
             type="text"
-            class="form-control"
+            class="form-control w-100"
             id="topPInput"
             placeholder="0.9"
           />
@@ -348,7 +335,7 @@
           <label class="form-label margin-bottom-1px">Stored Prompt 1</label>
           <input
             type="text"
-            class="form-control"
+            class="form-control w-100"
             id="storedPrompt1Input"
             placeholder="Translate it."
           />
@@ -359,7 +346,7 @@
           <label class="form-label margin-bottom-1px">Stored Prompt 2</label>
           <input
             type="text"
-            class="form-control"
+            class="form-control w-100"
             id="storedPrompt2Input"
             placeholder="Summarize it."
           />
@@ -370,7 +357,7 @@
           <label class="form-label margin-bottom-1px">Stored Prompt 3</label>
           <input
             type="text"
-            class="form-control"
+            class="form-control w-100"
             id="storedPrompt3Input"
             placeholder="Explain it."
           />
@@ -381,7 +368,7 @@
           <label class="form-label margin-bottom-1px">Stored Prompt 4</label>
           <input
             type="text"
-            class="form-control"
+            class="form-control w-100"
             id="storedPrompt4Input"
             placeholder="Tell me more."
           />
@@ -391,17 +378,29 @@
           <label class="form-label margin-bottom-1px">Stored Prompt 5</label>
           <input
             type="text"
-            class="form-control"
+            class="form-control w-100"
             id="storedPrompt5Input"
             placeholder="What is it?"
           />
           <span id="storedPrompt5Storage" class="storage-value"></span>
         </div>
         <div class="mb-1">
+            <label class="form-label margin-bottom-1px">Language</label>
+            <select class="form-select" id="languageSelect">
+                <option value="English">Response - English</option>
+                <option value="Chinese">Response - Chinese</option>
+                <option value="Spanish">Response - Spanish</option>
+                <option value="French">Response - French</option>
+                <option value="German">Response - German</option>
+                <option value="Japanese">Response - Japanese</option>
+                <option value="Russian">Response - Russian</option>
+            </select>
+        </div>
+        <div class="mb-1">
           <label class="form-label margin-bottom-1px">TTS Host</label>
           <input
             type="text"
-            class="form-control"
+            class="form-control w-100"
             id="ttsHostInput"
             placeholder="Text-to-Speech Host"
           />
@@ -411,7 +410,7 @@
           <label class="form-label margin-bottom-1px">Text Extraction Host</label>
           <input
             type="text"
-            class="form-control"
+            class="form-control w-100"
             id="textExtractionHostInput"
             placeholder="Text Extraction Host"
           />
@@ -421,17 +420,17 @@
           <label class="form-label margin-bottom-1px">Text Extraction Token</label>
           <input
             type="text"
-            class="form-control"
+            class="form-control w-100"
             id="textExtractionTokenInput"
             placeholder="Text Extraction Token"
           />
           <span id="textExtractionTokenStorage" class="storage-value"></span>
         </div>
-        <div class="mb-1">
+        <div class="mb-2">
           <label class="form-label margin-bottom-1px">TTS Speed</label>
           <input
             type="text"
-            class="form-control"
+            class="form-control w-100"
             id="ttsSpeedInput"
             placeholder="Text-to-Speech Speed"
           />
@@ -444,10 +443,12 @@
 
       <div
         id="markdownContent"
-        class="border p-3 mb-1 bg-white overflow-auto markdown-content"
+        class="border rounded p-3 mb-1 bg-white overflow-auto markdown-content"
       ></div>
 
-      <div class="d-flex justify-content-between align-items-center mt-1">
+      <hr />
+
+      <div class="d-flex justify-content-between align-items-center mb-2">
         <footer id="status" class="flex-grow-1">Ready.</footer>
         <button
           class="btn btn-danger btn-sm"
