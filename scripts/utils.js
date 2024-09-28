@@ -43,19 +43,19 @@ export function isValidUrl (url) {
   return !!pattern.test (url);
 }
 
-export function splitIntoChunks (text, chunkSize=200) {
+export function splitIntoChunks(text, chunkSize = 200) {
   const paragraphs = text.split(/\n+/); // Split the text into paragraphs based on new lines
   let chunks = [];
   let currentChunk = '';
 
   paragraphs.forEach(paragraph => {
-    if (currentChunk.length + paragraph.length + 1 <= chunkSize) {
+    if (currentChunk.length + paragraph.length + (currentChunk ? 1 : 0) <= chunkSize) {
       // If adding the paragraph won't exceed the chunk size, add it
       if (currentChunk) currentChunk += '\n'; // Add a newline if it's not the first paragraph in the chunk
       currentChunk += paragraph;
     } else {
-      // If adding the paragraph exceeds the chunk size, save the current chunk and start a new one
-      chunks.push(currentChunk);
+      // If adding the paragraph exceeds the chunk size, save the current chunk (if not empty) and start a new one
+      if (currentChunk) chunks.push(currentChunk);
       currentChunk = paragraph;
     }
   });
