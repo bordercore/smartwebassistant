@@ -20,9 +20,7 @@ function tts () {
         action: 'getSelectedText',
       }, (selectedText) => {
         if (chrome.runtime.lastError) {
-          updateStatus(chrome.runtime.lastError.message);
-          console.log(`Error sending message: ${chrome.runtime.lastError.message}`);
-          chrome.runtime.sendMessage({action: 'playingStopped'});
+          error(`Error sending message: ${chrome.runtime.lastError.message}`);
           return;
         }
         if (!selectedText) {
@@ -35,6 +33,11 @@ function tts () {
 }
 
 function processText(text) {
+
+  if (!text) {
+    error("Error extracting text");
+    return;
+  }
   chrome.storage.local.get(
     ['ttsHost', 'ttsSpeed'],
     async function (settings) {
@@ -49,11 +52,15 @@ function processText(text) {
             settings: settings
           }, () => {
             if (chrome.runtime.lastError) {
-              updateStatus(chrome.runtime.lastError.message);
-              console.log(`Error sending message: ${chrome.runtime.lastError.message}`);
-              chrome.runtime.sendMessage({action: 'playingStopped'});
+              error(`Error sending message: ${chrome.runtime.lastError.message}`)
             }
           });
       })
     })
+}
+
+function error(message) {
+  updateStatus(message, LOG_LEVELS.ERROR);
+  console.log(message);
+  chrome.runtime.sendMessage({action: 'playingStopped'});
 }
