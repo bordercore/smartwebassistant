@@ -55,6 +55,8 @@ chrome.runtime.onMessage.addListener ((message, sender, sendResponse) => {
   if (message.action === 'getMarkdownContent') {
     const markdownContent = document.getElementById('markdownContent');
     sendResponse({markdownContent: markdownContent.value});
+  } else if (message.action === 'getSelectedText') {
+    sendResponse(window.getSelection().toString());
   } else if (message.action === 'streamAudio') {
     sendResponse();
     const chunks = message.chunks;
@@ -107,5 +109,10 @@ function playAudioSequentially (audioElements) {
         // Continue the chain even if an error occurs
         return Promise.resolve();
       });
+  });
+
+  // Add a final .then() to the promise chain so that we know we're finished
+  return promiseChain.then(() => {
+    chrome.runtime.sendMessage({action: 'playingStopped'});
   });
 }

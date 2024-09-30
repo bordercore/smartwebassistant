@@ -37,7 +37,6 @@ export function initUI () {
     // Query the current active tab in the last focused window
     const [tab] = await chrome.tabs.query ({active: true, currentWindow: true});
     const tabId = tab.id;
-    console.log ('Tab ID:', tabId);
     try {
       // Open the side panel for the active tab
       await chrome.sidePanel.open ({tabId});
@@ -202,7 +201,7 @@ export function initUI () {
         storedPromptButtons[index].title = titleText;
       });
 
-      updateStatus ('Ready.');
+      updateStatus ('Ready');
     }
   );
 
@@ -389,14 +388,20 @@ export function initUI () {
 
   // Connect the popup to the background service worker.
   let backgroundPort = chrome.runtime.connect({ name: 'popup' });
-  backgroundPort.onMessage.addListener((msg) => {
-    const statusDisplay = document.getElementById ('status');
-    if (msg.level === LOG_LEVELS.ERROR) {
-      statusDisplay.classList.add("text-danger");
-    } else {
-      statusDisplay.classList.remove("text-danger");
+  backgroundPort.onMessage.addListener((message) => {
+    if (message.action === 'updateStatus') {
+      const statusDisplay = document.getElementById ('status');
+      if (message.level === LOG_LEVELS.ERROR) {
+        statusDisplay.classList.add("text-danger");
+      } else {
+        statusDisplay.classList.remove("text-danger");
+      }
+      statusDisplay.textContent = message.message;
+    } else if (message.action === 'playingStopped') {
+      isPlaying = false;
+      document.getElementById('ttsButton').textContent = 'Play';
+      updateStatus ('Ready');
     }
-    statusDisplay.textContent = msg.message;
   });
 
 }

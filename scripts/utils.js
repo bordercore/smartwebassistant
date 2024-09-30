@@ -65,3 +65,30 @@ export function splitIntoChunks(text, chunkSize = 200) {
 
   return chunks;
 }
+
+let popupPort;
+
+// Listen for connections from the popup
+chrome.runtime.onConnect.addListener((port) => {
+  if (port.name === "popup") {
+    popupPort = port;
+
+    // Listen for disconnect
+    port.onDisconnect.addListener(() => {
+      popupPort = null;
+    });
+  }
+});
+
+// Update the popup's status field by sending it a message
+export function updateStatusBackground (message, level = LOG_LEVELS.INFO) {
+  sendMessageToPopup({action: 'updateStatus', message: message, level: level});
+}
+
+export function sendMessageToPopup(message) {
+  if (popupPort) {
+    popupPort.postMessage(message);
+  } else {
+    console.log("Popup is not connected. Message not sent:", message);
+  }
+}

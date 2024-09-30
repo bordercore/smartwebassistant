@@ -1,6 +1,5 @@
 import {consoleLog, LOG_LEVELS} from './utils.js';
-import {updateStatus} from './utils.js';
-import {updateStatus as updateStatusBackground} from '../background.js';
+import {updateStatus, updateStatusBackground} from './utils.js';
 
 export function extractWebpageText (tabId, processFunction) {
   updateStatus ('Extracting text from the webpage...');
