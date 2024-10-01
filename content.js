@@ -90,11 +90,15 @@ function playAudioSequentially (audioElements) {
   // Initialize a promise chain
   let promiseChain = Promise.resolve();
 
-  audioElements.forEach(audioElement => {
+  const numChunks = audioElements.length;
+
+  audioElements.forEach( (audioElement, index) => {
     promiseChain = promiseChain
       .then(() => {
         // Start playing the current audio element
         currentAudio = audioElement;
+        const progress = Math.floor((index + 1) / numChunks * 100);
+        chrome.runtime.sendMessage({action: 'updateStatus', status: `Speaking: ${progress}%`});
         return audioElement.play();
       })
       .then(() => {
