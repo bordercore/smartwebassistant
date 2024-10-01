@@ -327,7 +327,6 @@ export function initUI () {
       }
       // Set the custom prompt input to the content of the selected stored prompt
       customPromptInput.value = promptInput.value;
-      handlePromptSubmission (promptInput.value, selectedLanguage);
     });
   });
 

@@ -17,7 +17,7 @@ function handleResponseError (operation) {
   updateStatus (`Please refresh the webpage of active tab.`);
 }
 
-export function extractWebpageTextAPI (tabUrl, processFunction) {
+export function extractWebpageTextAPI (tabUrl, processFunction, args) {
   updateStatusBackground ('Extracting text from the webpage...');
   chrome.storage.local.get(
     ['textExtractionHost', 'textExtractionToken'],
@@ -29,7 +29,7 @@ export function extractWebpageTextAPI (tabUrl, processFunction) {
               }
             })
         .then(response => response.json())
-        .then(data => processFunction (data["text"]))
+        .then(data => processFunction (data["text"], args))
         .catch(error => console.error('Error:', error));
     }
   );
