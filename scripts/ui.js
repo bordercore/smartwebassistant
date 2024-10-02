@@ -353,13 +353,23 @@ export function initUI () {
     testApiConnection (apiUrl);
   });
 
-  let isPlaying = false;
+  // Get the current 'playing' state from the background service worker
+  let isPlayingState;
+
+  chrome.runtime.sendMessage({action: 'isPlaying'}, (state) => {
+    isPlayingState = state;
+    if (state === 'playing') {
+      document.getElementById('ttsButton').textContent = 'Pause';
+    } else {
+      document.getElementById('ttsButton').textContent = 'Play';
+    }
+  });
 
   ttsButton.addEventListener ('click', () => {
     const buttonValue = document.getElementById('ttsButton').textContent;
     if (buttonValue === 'Play') {
       document.getElementById('ttsButton').textContent = 'Pause';
-      if (isPlaying) {
+      if (isPlayingState !== 'stopped') {
         chrome.tabs.query ({active: true, currentWindow: true}, (tabs) => {
         const activeTabId = tabs[0].id;
         chrome.tabs.sendMessage(activeTabId, {action: 'ttsPlay'});
@@ -369,7 +379,7 @@ export function initUI () {
         }
       });
       } else {
-        isPlaying = true;
+        isPlayingState = 'playing';
         chrome.runtime.sendMessage({action: 'tts'});
       }
     } else {
@@ -397,7 +407,7 @@ export function initUI () {
       }
       statusDisplay.textContent = message.message;
     } else if (message.action === 'playingStopped') {
-      isPlaying = false;
+      // isPlayingState = false;
       document.getElementById('ttsButton').textContent = 'Play';
       updateStatus ('Ready');
     }

@@ -49,6 +49,9 @@ let ttsSpeedDefault;
 //   (document.head || document.documentElement).appendChild (s);
 // }
 
+// Reset the 'playing' state whenever the page is refreshed
+chrome.runtime.sendMessage({action: 'setIsPlaying', state: 'stopped'});
+
 let currentAudio;
 
 chrome.runtime.onMessage.addListener ((message, sender, sendResponse) => {
@@ -81,8 +84,10 @@ chrome.runtime.onMessage.addListener ((message, sender, sendResponse) => {
     return true;
   } else if (message.action === 'ttsPause') {
     currentAudio.pause();
+    chrome.runtime.sendMessage({action: 'setIsPlaying', state: 'paused'});
   } else if (message.action === 'ttsPlay') {
     currentAudio.play();
+    chrome.runtime.sendMessage({action: 'setIsPlaying', state: 'playing'});
   }
 });
 
