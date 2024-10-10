@@ -74,6 +74,9 @@ export function initUI () {
   const ttsButton = document.getElementById (
     'ttsButton'
   );
+  const ttsStopButton = document.getElementById (
+    'ttsStopButton'
+  );
   const storedPromptButtons = [
     document.getElementById ('storedPrompt1Button'),
     document.getElementById ('storedPrompt2Button'),
@@ -371,13 +374,13 @@ export function initUI () {
       document.getElementById('ttsButton').textContent = 'Pause';
       if (isPlayingState !== 'stopped') {
         chrome.tabs.query ({active: true, currentWindow: true}, (tabs) => {
-        const activeTabId = tabs[0].id;
-        chrome.tabs.sendMessage(activeTabId, {action: 'ttsPlay'});
-        if (chrome.runtime.lastError) {
-          updateStatus(chrome.runtime.lastError.message);
-          console.log(`Error sending message: ${chrome.runtime.lastError.message}`);
-        }
-      });
+          const activeTabId = tabs[0].id;
+          chrome.tabs.sendMessage(activeTabId, {action: 'ttsPlay'});
+          if (chrome.runtime.lastError) {
+            updateStatus(chrome.runtime.lastError.message);
+            console.log(`Error sending message: ${chrome.runtime.lastError.message}`);
+          }
+        });
       } else {
         isPlayingState = 'playing';
         chrome.runtime.sendMessage({action: 'tts'});
@@ -395,6 +398,18 @@ export function initUI () {
     }
   });
 
+  ttsStopButton.addEventListener ('click', () => {
+    document.getElementById('ttsButton').textContent = 'Play';
+    chrome.tabs.query ({active: true, currentWindow: true}, (tabs) => {
+      const activeTabId = tabs[0].id;
+      chrome.tabs.sendMessage(activeTabId, {action: 'ttsStop'});
+      if (chrome.runtime.lastError) {
+        updateStatus(chrome.runtime.lastError.message);
+        console.log(`Error sending message: ${chrome.runtime.lastError.message}`);
+      }
+    });
+  });
+
   // Connect the popup to the background service worker.
   let backgroundPort = chrome.runtime.connect({ name: 'popup' });
   backgroundPort.onMessage.addListener((message) => {
@@ -407,7 +422,6 @@ export function initUI () {
       }
       statusDisplay.textContent = message.message;
     } else if (message.action === 'playingStopped') {
-      // isPlayingState = false;
       document.getElementById('ttsButton').textContent = 'Play';
       updateStatus ('Ready');
     }

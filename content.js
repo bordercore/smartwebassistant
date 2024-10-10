@@ -6,7 +6,7 @@ let ttsSpeedDefault;
     const module = await import(src);
     ttsSpeedDefault = module.ttsSpeedDefault;
   } catch (error) {
-    console.error('Error loading module:', error);
+    console.error('Error loading module, possibly due to CSP: ', error);
   }
 })();
 
@@ -49,9 +49,6 @@ let ttsSpeedDefault;
 //   (document.head || document.documentElement).appendChild (s);
 // }
 
-// Reset the 'playing' state whenever the page is refreshed
-chrome.runtime.sendMessage({action: 'setIsPlaying', state: 'stopped'});
-
 let currentAudio;
 
 chrome.runtime.onMessage.addListener ((message, sender, sendResponse) => {
@@ -88,6 +85,10 @@ chrome.runtime.onMessage.addListener ((message, sender, sendResponse) => {
   } else if (message.action === 'ttsPlay') {
     currentAudio.play();
     chrome.runtime.sendMessage({action: 'setIsPlaying', state: 'playing'});
+  } else if (message.action === 'ttsStop') {
+    currentAudio.pause();
+    currentAudio.currentTime = 0;
+    chrome.runtime.sendMessage({action: 'setIsPlaying', state: 'stopped'});
   }
 });
 
