@@ -4,7 +4,7 @@ import {extractWebpageTextAPI} from './contentExtraction.js';
 
 export function handlePromptSubmission (prompt, language, currentController) {
   const includeWebContent = document.getElementById (
-    'includeWebContentCheckbox'
+    'sendPageCheckbox'
   ).checked;
   const systemPrompt = `Output response in ${language} language. The prompt is:`;
   // print debug log in console
