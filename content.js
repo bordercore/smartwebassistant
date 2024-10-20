@@ -114,7 +114,7 @@ function playAudioSequentially (audioElements) {
         });
       })
       .catch(error => {
-        console.error('Error playing audio:', error);
+        console.error('Error playing audio:', error.toString());
         chrome.runtime.sendMessage({action: 'updateStatus', status: error.toString(), type: "error"});
         // Continue the chain even if an error occurs
         return Promise.resolve();
