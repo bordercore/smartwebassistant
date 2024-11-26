@@ -72,7 +72,7 @@ chrome.runtime.onMessage.addListener ((message, sender, sendResponse) => {
     chunks.forEach((chunk, index) => {
       streamingUrl = `https://${ttsHost}/api/tts-generate-streaming?text=${chunk}&voice=${ttsVoice}&language=en&output_file=${outputFile}`;
       audioElement = new Audio(`audio_${index}`);
-      audioElement.preload = "none";
+      audioElement.preload = 'none';
       audioElement.src = streamingUrl;
       audioElement.playbackRate = ttsSpeed;
       audioChunks.push(audioElement);
@@ -86,13 +86,54 @@ chrome.runtime.onMessage.addListener ((message, sender, sendResponse) => {
     currentAudio.play();
     chrome.runtime.sendMessage({action: 'setIsPlaying', state: 'playing'});
   } else if (message.action === 'ttsStop') {
-    currentAudio.pause();
-    currentAudio.currentTime = 0;
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+    }
     chrome.runtime.sendMessage({action: 'setIsPlaying', state: 'stopped'});
   }
 });
 
-function playAudioSequentially (audioElements) {
+function playAudioSequentially(audioElements) {
+  let promiseChain = Promise.resolve();
+  const numChunks = audioElements.length;
+
+  audioElements.forEach((audioElement, index) => {
+    promiseChain = promiseChain
+      .then(() => {
+        // Preload the next audio if it exists
+        if (index + 1 < numChunks) {
+          const nextAudio = audioElements[index + 1];
+          nextAudio.preload = 'auto'; // This will start loading the next audio
+        }
+
+        // Start playing the current audio element
+        currentAudio = audioElement;
+        const progress = Math.floor(index / numChunks * 100);
+        chrome.runtime.sendMessage({action: 'updateStatus', status: `Speaking: ${progress}%`});
+        return audioElement.play();
+      })
+      .then(() => {
+        // Wait for the current audio to finish playing before proceeding
+        return new Promise(resolve => {
+          audioElement.addEventListener('ended', resolve, { once: true });
+        });
+      })
+      .catch(error => {
+        console.error('Error playing audio:', error.toString());
+        chrome.runtime.sendMessage({action: 'updateStatus', status: error.toString(), type: "error"});
+        // Continue the chain even if an error occurs
+        return Promise.resolve();
+      });
+  });
+
+  // Add a final .then() to the promise chain so that we know we're finished
+  return promiseChain.then(() => {
+    chrome.runtime.sendMessage({action: 'playingStopped'});
+  });
+}
+
+function _playAudioSequentially (audioElements) {
   // Initialize a promise chain
   let promiseChain = Promise.resolve();
 
