@@ -70,7 +70,10 @@ chrome.runtime.onMessage.addListener ((message, sender, sendResponse) => {
     let audioElement;
 
     chunks.forEach((chunk, index) => {
-      streamingUrl = `https://${ttsHost}/api/tts-generate-streaming?text=${chunk}&voice=${ttsVoice}&language=en&output_file=${outputFile}`;
+      // alltalkbeta TTS
+      // streamingUrl = `https://${ttsHost}/api/tts-generate-streaming?text=${chunk}&voice=${ttsVoice}&language=en&output_file=${outputFile}`;
+      // Kokoro TTS
+      streamingUrl = `https://${ttsHost}/?text=${chunk}&speed=${ttsSpeed}`;
       audioElement = new Audio(`audio_${index}`);
       audioElement.preload = 'none';
       audioElement.src = streamingUrl;
