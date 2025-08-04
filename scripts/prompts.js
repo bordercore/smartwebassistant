@@ -20,7 +20,7 @@ export function handlePromptSubmission (prompt, language, currentController) {
           action: 'getSelectedText',
         }, (selectedText) => {
           if (chrome.runtime.lastError) {
-            error(`Error sending message: ${chrome.runtime.lastError.message}`);
+            console.Log (`Error sending message: ${chrome.runtime.lastError.message}`, LOG_LEVELS.ERROR);
             return;
           }
           const args = {

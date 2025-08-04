@@ -80,9 +80,9 @@ export function initMarkdown () {
 
 function isNotCompleteBlock (buffer) {
   // Check for unmatched code block ticks
+  consoleLog ('Incomplete code block detected.' + buffer, LOG_LEVELS.DEBUG);
   const codeTicks = (buffer.match (/```/g) || []).length;
   return codeTicks % 2 !== 0; // Returns true if there's an odd number of ticks
-  consoleLog ('Incomplete code block detected.' + buffer, LOG_LEVELS.DEBUG);
 }
 
 function isIncompleteTable (buffer) {
