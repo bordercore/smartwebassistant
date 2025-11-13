@@ -134,7 +134,7 @@ export function initUI () {
     ],
     function (result) {
       apiUrlInput.value =
-        result.apiUrl || 'https://api.openai.com/v1/chat/completions';
+        result.apiUrl || 'https://api.openai.com/v1/responses';
       document.getElementById (
         'apiUrlStorage'
       ).textContent = `(Stored: ${result.apiUrl || 'None'})`;

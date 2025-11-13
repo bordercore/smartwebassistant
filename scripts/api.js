@@ -5,30 +5,16 @@ import {initMarkdown, appendMarkdown, displayMarkdown} from './markdown.js';
 let currentController = null;
 let requestCancelled = true;
 
-// cancelButton.addEventListener ('click', () => {
-//   consoleLog ('Cancelling the request...', LOG_LEVELS.DEBUG);
-//   if (currentController && currentController instanceof AbortController) {
-//     consoleLog ('Request aborted.', LOG_LEVELS.DEBUG);
-//     currentController.abort ();
-//     currentController = null;
-//     requestCancelled = true;
-//     updateStatus ('Request cancelled.');
-//     cancelButton.style.display = 'none';
-//   } else {
-//     consoleLog ('No request to cancel.', LOG_LEVELS.DEBUG);
-//   }
-// });
-
 /**
  * Fetches a response from the OpenAI API.
-  * @param {string} system_prompt - The system prompt to be sent to the API.
-  * @param {string} user_prompt - The user prompt to be sent to the API.
-  * @returns {void}
+ * @param {string} system_prompt - The system prompt to be sent to the API.
+ * @param {string} user_prompt - The user prompt to be sent to the API.
+ * @returns {void}
  */
-export function fetchOpenAI (system_prompt, user_prompt) {
-  //print debug log in console
-  consoleLog (`system_prompt: ${system_prompt}`, LOG_LEVELS.DEBUG);
-  consoleLog (`user_prompt: ${user_prompt}`, LOG_LEVELS.DEBUG);
+export function fetchOpenAI(system_prompt, user_prompt) {
+  // print debug log in console
+  consoleLog(`system_prompt: ${system_prompt}`, LOG_LEVELS.DEBUG);
+  consoleLog(`user_prompt: ${user_prompt}`, LOG_LEVELS.DEBUG);
 
   // Get settings from local storage
   chrome.storage.local.get (
@@ -39,6 +25,7 @@ export function fetchOpenAI (system_prompt, user_prompt) {
         updateStatus ('Failed to load settings. Please try again.');
         return;
       }
+
       // Cancel any ongoing fetch
       if (currentController && currentController instanceof AbortController) {
         currentController.abort ();
@@ -49,7 +36,6 @@ export function fetchOpenAI (system_prompt, user_prompt) {
 
       // Create messages array dynamically based on system_prompt
       const messages = [];
-      // Check if system_prompt is not empty
       if (system_prompt) {
         messages.push ({
           role: 'system',
@@ -62,34 +48,19 @@ export function fetchOpenAI (system_prompt, user_prompt) {
         content: user_prompt,
       });
 
+      // Build payload for Responses API
       const payload = {
         model: settings.modelName,
-        max_tokens: parseInt (settings.maxToken, 10), // Ensure max_tokens is an integer
-        temperature: parseFloat (settings.temperature), // Ensure temperature is a float
-        top_p: parseFloat (settings.topP), // Ensure top_p is a float
-        messages: messages,
-        stream: true, // Stream the response
+        input: messages, // Responses API expects `input`
+        stream: true, // Enable streaming
+        // temperature: parseFloat(settings.temperature),
+        // top_p: parseFloat(settings.topP),
       };
 
-      // Convert payload to JSON string
-      const payloadString = JSON.stringify (payload);
-
-      // Copy the API request payload to the clipboard if debug mode is enabled
-      // if (document.getElementById ('debugModeCheckbox').checked) {
-      //   if (navigator.clipboard) {
-      //     navigator.clipboard
-      //       .writeText (payloadString)
-      //       .then (() => {
-      //         updateStatus ('Payload copied to clipboard.', LOG_LEVELS.DEBUG);
-      //       })
-      //       .catch (err => {
-      //         updateStatus ('Failed to copy payload to clipboard.');
-      //         console.error ('Clipboard write failed:', err);
-      //       });
-      //   } else {
-      //     updateStatus ('Clipboard API not available.');
-      //   }
-      // }
+      // max_output_tokens is the Responses API field
+      if (settings.maxToken) {
+        payload.max_output_tokens = parseInt(settings.maxToken, 10);
+      }
 
       // Define the requestOptions including the AbortController's signal
       const requestOptions = {
@@ -97,6 +68,8 @@ export function fetchOpenAI (system_prompt, user_prompt) {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${settings.apiToken}`,
+          // For some proxies you might also add:
+          // "Accept": "text/event-stream",
         },
         body: JSON.stringify (payload),
         signal: currentController.signal,
@@ -107,11 +80,83 @@ export function fetchOpenAI (system_prompt, user_prompt) {
 
       try {
         requestCancelled = false;
-        fetch (settings.apiUrl, requestOptions).then (response => {
-          const statusCode = response.status; // Capture the HTTP status code
-          const reader = response.body.getReader ();
-          initMarkdown ();
-          updateStatus (`Status : ${statusCode}. Waiting for response...`);
+
+        return fetch(settings.apiUrl, requestOptions).then((response) => {
+          const statusCode = response.status;
+          const reader = response.body.getReader();
+          initMarkdown();
+          updateStatus(`Status : ${statusCode}. Waiting for response...`);
+
+          const textDecoder = new TextDecoder("utf-8");
+          let buffer = "";
+
+          function processEvent(rawEvent) {
+            const lines = rawEvent
+              .split("\n")
+              .map((l) => l.trim())
+              .filter(Boolean);
+
+            if (lines.length === 0) {
+              return;
+            }
+
+            // Optional: read SSE event name if present
+            // const eventLine = lines.find((l) => l.startsWith("event:"));
+            // const eventName = eventLine
+            //   ? eventLine.slice("event:".length).trim()
+            //   : null;
+
+            const dataLine = lines.find((l) => l.startsWith("data:"));
+            if (!dataLine) {
+              return;
+            }
+
+            const jsonStr = dataLine.slice("data:".length).trim();
+            let obj;
+            try {
+              obj = JSON.parse(jsonStr);
+            } catch (err) {
+              consoleLog(
+                "JSON.parse failed for data line: " + jsonStr,
+                LOG_LEVELS.DEBUG
+              );
+              return;
+            }
+
+            let content = null;
+
+            // Responses API streaming format
+            if (
+              obj.type === "response.output_text.delta" &&
+              typeof obj.delta === "string"
+            ) {
+              content = obj.delta;
+            }
+            // Backward-compat: old Chat Completions streaming format
+            else if (
+              obj.choices &&
+              obj.choices[0] &&
+              obj.choices[0].delta &&
+              obj.choices[0].delta.content
+            ) {
+              content = obj.choices[0].delta.content;
+            }
+
+            if (content != null) {
+              updateStatus("Stream received data.");
+              consoleLog("Received content:" + content, LOG_LEVELS.DEBUG);
+              appendMarkdown(content);
+              if (content.includes("\n")) {
+                displayMarkdown();
+              }
+            } else if (obj.type) {
+              consoleLog(
+                "Received non-text SSE event type: " + obj.type,
+                LOG_LEVELS.DEBUG
+              );
+            }
+          }
+
           reader
             .read ()
             .then (function pump({done, value}) {
@@ -121,66 +166,24 @@ export function fetchOpenAI (system_prompt, user_prompt) {
                 cancelButton.style.display = 'none'; // Hide cancel button
                 return;
               }
-              const chunk = new TextDecoder ('utf-8').decode (value);
-              consoleLog ('Received chunk:' + chunk, LOG_LEVELS.DEBUG);
-              if (chunk.startsWith ('ping')) {
-                consoleLog ('Received ping:' + chunk, LOG_LEVELS.DEBUG);
-                updateStatus ('ping received.');
+
+              buffer += textDecoder.decode(value, { stream: true });
+              consoleLog("Received raw chunk:" + buffer, LOG_LEVELS.DEBUG);
+
+              let sepIndex;
+              // SSE events are separated by a blank line
+              while ((sepIndex = buffer.indexOf("\n\n")) !== -1) {
+                const rawEvent = buffer.slice(0, sepIndex);
+                buffer = buffer.slice(sepIndex + 2);
+                processEvent(rawEvent);
               }
 
-              if (!chunk.startsWith ('data:')) {
-                consoleLog (
-                  'Chunk does not start with "data:"' + chunk,
-                  LOG_LEVELS.DEBUG
-                );
-              }
-
-              try {
-                //if there are multiple daata: in the chunk, split it loop through each data: and process it
-                let list = [];
-                list = chunk.split ('data:');
-                consoleLog (
-                  `Received ${list.length} chunks.`,
-                  LOG_LEVELS.DEBUG
-                );
-                list.forEach (function (item) {
-                  if (item) {
-                    const obj = JSON.parse (item);
-                    if (
-                      obj.choices &&
-                      obj.choices[0] &&
-                      obj.choices[0].delta &&
-                      obj.choices[0].delta.content
-                    ) {
-                      updateStatus ('Stream received data.');
-                      const content = obj.choices[0].delta.content;
-                      consoleLog (
-                        'Received content:' + content,
-                        LOG_LEVELS.DEBUG
-                      );
-                      appendMarkdown (content);
-                      if (content.includes ('\n')) {
-                        displayMarkdown ();
-                      }
-                    } else {
-                      consoleLog (
-                        'Received correct chunk format but no data:',
-                        chunk,
-                        LOG_LEVELS.DEBUG
-                      );
-                    }
-                  }
-                });
-              } catch (error) {
-                console.error ('Error processing JSON:', error);
-                updateStatus ('Error processing chunk:', error);
-              }
-              return reader.read ().then (pump);
+              return reader.read().then(pump);
             })
-            .catch (error => {
-              console.error ('Error during fetch or reading:', error);
-              if (error.name === 'AbortError') {
-                updateStatus ('Request was cancelled.');
+            .catch((error) => {
+              console.error("Error during fetch or reading:", error);
+              if (error.name === "AbortError") {
+                updateStatus("Request was cancelled.");
               }
               if (requestCancelled) {
                 updateStatus ('Request was cancelled.');
@@ -190,31 +193,29 @@ export function fetchOpenAI (system_prompt, user_prompt) {
             });
         });
       } catch (error) {
-        if (error.name === 'AbortError') {
-          updateStatus ('Request was cancelled.');
-        }
-        if (requestCancelled) {
-          updateStatus ('Request was cancelled.');
-        } else {
-          console.error ('Error during fetch or reading:', error);
-          updateStatus (`API call failed: ${error.message}`);
-        }
-        cancelButton.style.display = 'none'; // Hide cancel button
+        console.error("Error making API request:", error);
+        updateStatus(`API call has failed: ${error.message}`);
       }
-      //return;
     }
   );
 }
 
-function updateConnectionTestStatus (message, success) {
-  const statusDisplay = document.getElementById ('apiConnectionTestStatus');
+// BELOW HERE ARE THE CONNECTION TEST HELPERS
+
+const statusId = 'connectionTestStatus';
+
+function updateConnectionTestStatus (message, success = null) {
+  const statusDisplay = document.getElementById (statusId);
+
+  if (!statusDisplay) {
+    console.error (`Element with ID "${statusId}" not found.`);
+    return;
+  }
+
   statusDisplay.textContent = message;
 
-  // Clear existing alert classes and set visibility
-  statusDisplay.className = 'alert small';
-  statusDisplay.style.display = 'block'; // Make the alert visible
+  statusDisplay.classList.remove ('alert-light', 'alert-success', 'alert-danger');
 
-  // Add the appropriate Bootstrap alert class based on success
   if (success === true) {
     statusDisplay.classList.add ('alert-success');
   } else if (success === false) {
@@ -232,30 +233,15 @@ export function testApiConnection (apiUrl) {
 
   fetch (apiUrl, {
     method: 'GET', // adjust as necessary for your API
-    headers: {
-      'Content-Type': 'application/json',
-    },
     signal: controller.signal,
   })
     .then (response => {
       clearTimeout (timeoutId);
-
-      if (response.ok || (response.status >= 405 && response.status < 500)) {
-        // Considering 2xx and 4xx as successful cases
-        updateConnectionTestStatus (`Connection successful!`, true);
-        consoleLog (
-          `Connection successful!${response.status} ${response.statusText}`,
-          LOG_LEVELS.DEBUG
-        );
-      } else if (response.status >= 500) {
-        // Handling server errors separately
-        updateConnectionTestStatus (
-          `Server error encountered: ${response.status} ${response.statusText}`,
-          false
-        );
+      if (response.ok) {
+        updateConnectionTestStatus ('Connection successful!', true);
       } else {
         updateConnectionTestStatus (
-          `Connection failed: ${response.status} ${response.statusText}`,
+          `Connection failed with status: ${response.status}`,
           false
         );
       }
