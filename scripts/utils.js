@@ -66,19 +66,28 @@ export function splitIntoChunks(text, chunkSize = 400) {
   return chunks;
 }
 
-let popupPort;
+let popupPort = null;
 
-// Listen for connections from the popup
-chrome.runtime.onConnect.addListener((port) => {
-  if (port.name === "popup") {
-    popupPort = port;
+function setupConnectionListener() {
+  // Listen for connections from the popup
+  // This listener is set up once and handles all future connections
+  chrome.runtime.onConnect.addListener((port) => {
+    console.log("Port connection received:", port.name);
+    if (port.name === "popup") {
+      popupPort = port;
+      console.log("Popup connected successfully.");
 
-    // Listen for disconnect
-    port.onDisconnect.addListener(() => {
-      popupPort = null;
-    });
-  }
-});
+      // Listen for disconnect
+      port.onDisconnect.addListener(() => {
+        console.log("Popup disconnected.");
+        popupPort = null;
+      });
+    }
+  });
+}
+
+// Set up the listener once when the module loads
+setupConnectionListener();
 
 // Update the popup's status field by sending it a message
 export function updateStatusBackground (message, level = LOG_LEVELS.INFO) {
@@ -87,8 +96,15 @@ export function updateStatusBackground (message, level = LOG_LEVELS.INFO) {
 
 export function sendMessageToPopup(message) {
   if (popupPort) {
-    popupPort.postMessage(message);
+    try {
+      popupPort.postMessage(message);
+    } catch (error) {
+      console.log("Error sending message to popup:", error.message);
+      popupPort = null;
+    }
   } else {
-    console.log("Popup is not connected. Message not sent:", message);
+    // Popup is not connected - this is expected when the popup is closed
+    // Messages will be delivered when the popup reconnects
+    console.log("Popup is not connected. Message not delivered:", message.action);
   }
 }

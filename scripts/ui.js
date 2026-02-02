@@ -411,8 +411,9 @@ export function initUI () {
   });
 
   // Connect the popup to the background service worker.
-  let backgroundPort = chrome.runtime.connect({ name: 'popup' });
-  backgroundPort.onMessage.addListener((message) => {
+  let backgroundPort = null;
+
+  function handleMessage(message) {
     if (message.action === 'updateStatus') {
       const statusDisplay = document.getElementById ('status');
       if (message.level === LOG_LEVELS.ERROR) {
@@ -425,6 +426,22 @@ export function initUI () {
       document.getElementById('ttsButton').textContent = 'Play';
       updateStatus ('Ready');
     }
-  });
+  }
+
+  function connectToBackground() {
+    backgroundPort = chrome.runtime.connect({ name: 'popup' });
+    console.log('Popup connected to background.');
+
+    backgroundPort.onMessage.addListener(handleMessage);
+
+    backgroundPort.onDisconnect.addListener(() => {
+      console.log('Popup disconnected from background. Reconnecting...');
+      // Reconnect after a short delay
+      setTimeout(connectToBackground, 500);
+    });
+  }
+
+  // Initial connection
+  connectToBackground();
 
 }
