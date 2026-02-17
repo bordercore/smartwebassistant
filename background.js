@@ -1,22 +1,22 @@
 import {extractWebpageTextAPI} from './scripts/contentExtraction.js'
 import {LOG_LEVELS, splitIntoChunks, sendMessageToPopup, updateStatusBackground as updateStatus} from './scripts/utils.js';
 
-let playingState = 'stopped';
-
 chrome.runtime.onMessage.addListener ((message, sender, sendResponse) => {
   if (message.action === 'tts') {
-    playingState = 'playing';
+    chrome.storage.session.set({ playingState: 'playing' });
     tts();
   } else if (message.action === 'updateStatus') {
     const level = message.type === "error" ? LOG_LEVELS.ERROR : LOG_LEVELS.INFO;
     updateStatus(message.status, level);
   } else if (message.action === 'playingStopped') {
-    playingState = 'stopped';
+    chrome.storage.session.set({ playingState: 'stopped' });
     sendMessageToPopup(message);
   } else if (message.action === 'setIsPlaying') {
-    playingState = message.state;
+    chrome.storage.session.set({ playingState: message.state });
   } else if (message.action === 'isPlaying') {
-    sendResponse(playingState);
+    chrome.storage.session.get('playingState', (result) => {
+      sendResponse(result.playingState || 'stopped');
+    });
     return true;
   }
 });

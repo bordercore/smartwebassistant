@@ -67,6 +67,7 @@ export function splitIntoChunks(text, chunkSize = 400) {
 }
 
 let popupPort = null;
+let lastStatusMessage = null;
 
 function setupConnectionListener() {
   // Listen for connections from the popup
@@ -76,6 +77,11 @@ function setupConnectionListener() {
     if (port.name === "popup") {
       popupPort = port;
       console.log("Popup connected successfully.");
+
+      // Send the last known status immediately so the popup doesn't flash "Ready"
+      if (lastStatusMessage) {
+        popupPort.postMessage(lastStatusMessage);
+      }
 
       // Listen for disconnect
       port.onDisconnect.addListener(() => {
@@ -91,10 +97,14 @@ setupConnectionListener();
 
 // Update the popup's status field by sending it a message
 export function updateStatusBackground (message, level = LOG_LEVELS.INFO) {
-  sendMessageToPopup({action: 'updateStatus', message: message, level: level});
+  lastStatusMessage = {action: 'updateStatus', message: message, level: level};
+  sendMessageToPopup(lastStatusMessage);
 }
 
 export function sendMessageToPopup(message) {
+  if (message.action === 'playingStopped') {
+    lastStatusMessage = null;
+  }
   if (popupPort) {
     try {
       popupPort.postMessage(message);
