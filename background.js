@@ -13,6 +13,9 @@ chrome.runtime.onMessage.addListener ((message, sender, sendResponse) => {
     sendMessageToPopup(message);
   } else if (message.action === 'setIsPlaying') {
     chrome.storage.session.set({ playingState: message.state });
+    if (message.state === 'stopped') {
+      sendMessageToPopup({action: 'playingStopped'});
+    }
   } else if (message.action === 'isPlaying') {
     chrome.storage.session.get('playingState', (result) => {
       sendResponse(result.playingState || 'stopped');

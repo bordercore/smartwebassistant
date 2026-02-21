@@ -400,6 +400,8 @@ export function initUI () {
 
   ttsStopButton.addEventListener ('click', () => {
     document.getElementById('ttsButton').textContent = 'Play';
+    isPlayingState = 'stopped';
+    updateStatus('Ready');
     chrome.tabs.query ({active: true, currentWindow: true}, (tabs) => {
       const activeTabId = tabs[0].id;
       chrome.tabs.sendMessage(activeTabId, {action: 'ttsStop'});
