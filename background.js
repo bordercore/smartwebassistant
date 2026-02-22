@@ -2,6 +2,8 @@ import {extractWebpageTextAPI} from './scripts/contentExtraction.js'
 import {LOG_LEVELS, splitIntoChunks, sendMessageToPopup, updateStatusBackground as updateStatus} from './scripts/utils.js';
 
 chrome.runtime.onMessage.addListener ((message, sender, sendResponse) => {
+  if (message.target && message.target !== 'background') return;
+
   if (message.action === 'tts') {
     chrome.storage.session.set({ playingState: 'playing' });
     tts();
@@ -21,29 +23,40 @@ chrome.runtime.onMessage.addListener ((message, sender, sendResponse) => {
       sendResponse(result.playingState || 'stopped');
     });
     return true;
-  } else if (message.action === 'fetchAudio') {
-    fetch(message.url)
-      .then(response => {
-        if (!response.ok) {
-          throw new Error(`TTS server error: ${response.status} ${response.statusText}`);
-        }
-        const contentType = response.headers.get('Content-Type') || 'audio/wav';
-        return response.arrayBuffer().then(buffer => ({ buffer, contentType }));
-      })
-      .then(({ buffer, contentType }) => {
-        const bytes = new Uint8Array(buffer);
-        let binary = '';
-        for (let i = 0; i < bytes.length; i++) {
-          binary += String.fromCharCode(bytes[i]);
-        }
-        sendResponse({ data: btoa(binary), contentType });
-      })
-      .catch(err => {
-        sendResponse({ error: err.message });
-      });
-    return true;
+  } else if (message.action === 'ttsPlay' || message.action === 'ttsPause' || message.action === 'ttsStop') {
+    ensureOffscreenDocument().then(() => {
+      chrome.runtime.sendMessage({target: 'offscreen', action: message.action});
+    }).catch(err => {
+      error(`Offscreen document error: ${err.message}`);
+    });
   }
 });
+
+let offscreenCreating = null;
+
+async function ensureOffscreenDocument() {
+  if (offscreenCreating) return offscreenCreating;
+
+  offscreenCreating = (async () => {
+    const contexts = await chrome.runtime.getContexts({
+      contextTypes: ['OFFSCREEN_DOCUMENT'],
+      documentUrls: [chrome.runtime.getURL('offscreen.html')]
+    });
+    if (contexts.length === 0) {
+      await chrome.offscreen.createDocument({
+        url: 'offscreen.html',
+        reasons: ['AUDIO_PLAYBACK'],
+        justification: 'TTS audio playback'
+      });
+    }
+  })();
+
+  try {
+    await offscreenCreating;
+  } finally {
+    offscreenCreating = null;
+  }
+}
 
 function tts () {
   chrome.tabs.query ({active: true, currentWindow: true}, (tabs) => {
@@ -75,20 +88,22 @@ function processText(text) {
     ['ttsHost', 'ttsSpeed'],
     async function (settings) {
       const chunks = splitIntoChunks(text);
-      chrome.tabs.query ({active: true, currentWindow: true}, (tabs) => {
-        const activeTabId = tabs[0].id;
-        updateStatus ('Speaking');
-        chrome.tabs.sendMessage(
-          activeTabId, {
-            action: 'streamAudio',
-            chunks: chunks,
-            settings: settings
-          }, () => {
-            if (chrome.runtime.lastError) {
-              error(`Error sending message: ${chrome.runtime.lastError.message}`)
-            }
-          });
-      })
+      try {
+        await ensureOffscreenDocument();
+        updateStatus('Speaking');
+        chrome.runtime.sendMessage({
+          target: 'offscreen',
+          action: 'streamAudio',
+          chunks: chunks,
+          settings: settings
+        }, () => {
+          if (chrome.runtime.lastError) {
+            error(`Error sending message: ${chrome.runtime.lastError.message}`);
+          }
+        });
+      } catch (err) {
+        error(`Error creating offscreen document: ${err.message}`);
+      }
     })
 }
 

@@ -373,28 +373,14 @@ export function initUI () {
     if (buttonValue === 'Play') {
       document.getElementById('ttsButton').textContent = 'Pause';
       if (isPlayingState !== 'stopped') {
-        chrome.tabs.query ({active: true, currentWindow: true}, (tabs) => {
-          const activeTabId = tabs[0].id;
-          chrome.tabs.sendMessage(activeTabId, {action: 'ttsPlay'});
-          if (chrome.runtime.lastError) {
-            updateStatus(chrome.runtime.lastError.message);
-            console.log(`Error sending message: ${chrome.runtime.lastError.message}`);
-          }
-        });
+        chrome.runtime.sendMessage({action: 'ttsPlay'});
       } else {
         isPlayingState = 'playing';
         chrome.runtime.sendMessage({action: 'tts'});
       }
     } else {
       document.getElementById('ttsButton').textContent = 'Play';
-      chrome.tabs.query ({active: true, currentWindow: true}, (tabs) => {
-        const activeTabId = tabs[0].id;
-        chrome.tabs.sendMessage(activeTabId, {action: 'ttsPause'});
-        if (chrome.runtime.lastError) {
-          updateStatus(chrome.runtime.lastError.message);
-          console.log(`Error sending message: ${chrome.runtime.lastError.message}`);
-        }
-      });
+      chrome.runtime.sendMessage({action: 'ttsPause'});
     }
   });
 
@@ -402,14 +388,7 @@ export function initUI () {
     document.getElementById('ttsButton').textContent = 'Play';
     isPlayingState = 'stopped';
     updateStatus('Ready');
-    chrome.tabs.query ({active: true, currentWindow: true}, (tabs) => {
-      const activeTabId = tabs[0].id;
-      chrome.tabs.sendMessage(activeTabId, {action: 'ttsStop'});
-      if (chrome.runtime.lastError) {
-        updateStatus(chrome.runtime.lastError.message);
-        console.log(`Error sending message: ${chrome.runtime.lastError.message}`);
-      }
-    });
+    chrome.runtime.sendMessage({action: 'ttsStop'});
   });
 
   // Connect the popup to the background service worker.
