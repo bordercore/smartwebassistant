@@ -64,32 +64,21 @@ chrome.runtime.onMessage.addListener ((message, sender, sendResponse) => {
     const chunks = message.chunks;
     const ttsHost = message.settings.ttsHost;
     const ttsSpeed = message.settings.ttsSpeed || ttsSpeedDefault;
-    const ttsVoice = 'female_07.wav';
-    const outputFile = 'stream_output.wav';
 
-    let streamingUrl;
-    let audioChunks = [];
-    let audioElement;
-
-    chunks.forEach((chunk, index) => {
-      // alltalkbeta TTS
-      // streamingUrl = `https://${ttsHost}/api/tts-generate-streaming?text=${chunk}&voice=${ttsVoice}&language=en&output_file=${outputFile}`;
-      // Kokoro TTS
-        streamingUrl = `https://${ttsHost}/?text=${encodeURIComponent(chunk)}&speed=${ttsSpeed}`;
-      audioElement = new Audio(`audio_${index}`);
-      audioElement.preload = 'none';
-      audioElement.src = streamingUrl;
-      audioElement.playbackRate = ttsSpeed;
-      audioChunks.push(audioElement);
-    });
-    playAudioSequentially(audioChunks);
-    return true;
+    const urls = chunks.map(chunk =>
+      `https://${ttsHost}/?text=${encodeURIComponent(chunk)}&speed=${ttsSpeed}`
+    );
+    playAudioSequentially(urls, ttsSpeed);
   } else if (message.action === 'ttsPause') {
-    currentAudio.pause();
-    chrome.runtime.sendMessage({action: 'setIsPlaying', state: 'paused'});
+    if (currentAudio) {
+      currentAudio.pause();
+      chrome.runtime.sendMessage({action: 'setIsPlaying', state: 'paused'});
+    }
   } else if (message.action === 'ttsPlay') {
-    currentAudio.play();
-    chrome.runtime.sendMessage({action: 'setIsPlaying', state: 'playing'});
+    if (currentAudio) {
+      currentAudio.play();
+      chrome.runtime.sendMessage({action: 'setIsPlaying', state: 'playing'});
+    }
   } else if (message.action === 'ttsStop') {
     stopRequested = true;
     if (currentAudio) {
@@ -106,88 +95,104 @@ chrome.runtime.onMessage.addListener ((message, sender, sendResponse) => {
   }
 });
 
-function playAudioSequentially(audioElements) {
-  let promiseChain = Promise.resolve();
-  const numChunks = audioElements.length;
-  stopRequested = false;
-
-  audioElements.forEach((audioElement, index) => {
-    promiseChain = promiseChain
-      .then(() => {
-        if (stopRequested) return;
-
-        // Preload the next audio if it exists
-        if (index + 1 < numChunks) {
-          const nextAudio = audioElements[index + 1];
-          nextAudio.preload = 'auto'; // This will start loading the next audio
-        }
-
-        // Start playing the current audio element
-        currentAudio = audioElement;
-        const progress = Math.floor(index / numChunks * 100);
-        chrome.runtime.sendMessage({action: 'updateStatus', status: `Speaking: ${progress}%`});
-        return audioElement.play();
-      })
-      .then(() => {
-        if (stopRequested) return;
-
-        // Wait for the current audio to finish playing before proceeding
-        return new Promise(resolve => {
-          currentEndedResolve = resolve;
-          audioElement.addEventListener('ended', () => {
-            currentEndedResolve = null;
-            resolve();
-          }, { once: true });
-        });
-      })
-      .catch(error => {
-        if (stopRequested) return;
-        console.error('Error playing audio:', error.toString());
-        chrome.runtime.sendMessage({action: 'updateStatus', status: error.toString(), type: "error"});
-        // Continue the chain even if an error occurs
-        return Promise.resolve();
-      });
-  });
-
-  // Add a final .then() to the promise chain so that we know we're finished
-  return promiseChain.then(() => {
-    if (!stopRequested) {
-      chrome.runtime.sendMessage({action: 'playingStopped'});
-    }
+function fetchAudioFromBackground(url) {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage({ action: 'fetchAudio', url }, response => {
+      if (chrome.runtime.lastError) {
+        return reject(new Error(chrome.runtime.lastError.message));
+      }
+      if (response.error) {
+        return reject(new Error(response.error));
+      }
+      const binary = atob(response.data);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], { type: response.contentType });
+      resolve(URL.createObjectURL(blob));
+    });
   });
 }
 
-function _playAudioSequentially (audioElements) {
-  // Initialize a promise chain
-  let promiseChain = Promise.resolve();
+async function playAudioSequentially(urls, ttsSpeed) {
+  const numChunks = urls.length;
+  stopRequested = false;
 
-  const numChunks = audioElements.length;
+  if (numChunks === 0) {
+    chrome.runtime.sendMessage({ action: 'playingStopped' });
+    return;
+  }
 
-  audioElements.forEach( (audioElement, index) => {
-    promiseChain = promiseChain
-      .then(() => {
-        // Start playing the current audio element
-        currentAudio = audioElement;
-        const progress = Math.floor(index / numChunks * 100);
-        chrome.runtime.sendMessage({action: 'updateStatus', status: `Speaking: ${progress}%`});
-        return audioElement.play();
-      })
-      .then(() => {
-        // Wait for the current audio to finish playing before proceeding
-        return new Promise(resolve => {
-          audioElement.addEventListener('ended', resolve, { once: true });
-        });
-      })
-      .catch(error => {
-        console.error('Error playing audio:', error.toString());
-        chrome.runtime.sendMessage({action: 'updateStatus', status: error.toString(), type: "error"});
-        // Continue the chain even if an error occurs
-        return Promise.resolve();
+  // Kick off pre-fetch for the first chunk immediately
+  let nextFetch = fetchAudioFromBackground(urls[0]);
+  let nextFetchConsumed = false;
+
+  for (let index = 0; index < numChunks; index++) {
+    if (stopRequested) break;
+
+    let blobUrl;
+    nextFetchConsumed = true;
+    try {
+      blobUrl = await nextFetch;
+    } catch (err) {
+      if (stopRequested) break;
+      console.error('Error fetching audio:', err.toString());
+      chrome.runtime.sendMessage({ action: 'updateStatus', status: err.toString(), type: 'error' });
+      // Pre-fetch next chunk (if any) so we can continue
+      if (index + 1 < numChunks) {
+        nextFetch = fetchAudioFromBackground(urls[index + 1]);
+        nextFetchConsumed = false;
+      }
+      continue;
+    }
+
+    if (stopRequested) {
+      URL.revokeObjectURL(blobUrl);
+      break;
+    }
+
+    // Pre-fetch the next chunk while the current one plays
+    if (index + 1 < numChunks) {
+      nextFetch = fetchAudioFromBackground(urls[index + 1]);
+      nextFetchConsumed = false;
+    }
+
+    const audioElement = new Audio(blobUrl);
+    audioElement.playbackRate = ttsSpeed;
+    currentAudio = audioElement;
+
+    const progress = Math.floor(index / numChunks * 100);
+    chrome.runtime.sendMessage({ action: 'updateStatus', status: `Speaking: ${progress}%` });
+
+    try {
+      await audioElement.play();
+
+      if (stopRequested) break;
+
+      // Wait for playback to finish
+      await new Promise(resolve => {
+        currentEndedResolve = resolve;
+        audioElement.addEventListener('ended', () => {
+          currentEndedResolve = null;
+          resolve();
+        }, { once: true });
       });
-  });
+    } catch (err) {
+      if (stopRequested) break;
+      console.error('Error playing audio:', err.toString());
+      chrome.runtime.sendMessage({ action: 'updateStatus', status: err.toString(), type: 'error' });
+    } finally {
+      URL.revokeObjectURL(blobUrl);
+    }
+  }
 
-  // Add a final .then() to the promise chain so that we know we're finished
-  return promiseChain.then(() => {
-    chrome.runtime.sendMessage({action: 'playingStopped'});
-  });
+  // Clean up any in-flight pre-fetch that was never consumed
+  if (!nextFetchConsumed) {
+    nextFetch.then(url => URL.revokeObjectURL(url)).catch(() => {});
+  }
+
+  if (!stopRequested) {
+    chrome.runtime.sendMessage({ action: 'playingStopped' });
+  }
 }

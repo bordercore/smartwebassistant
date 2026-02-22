@@ -21,6 +21,27 @@ chrome.runtime.onMessage.addListener ((message, sender, sendResponse) => {
       sendResponse(result.playingState || 'stopped');
     });
     return true;
+  } else if (message.action === 'fetchAudio') {
+    fetch(message.url)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`TTS server error: ${response.status} ${response.statusText}`);
+        }
+        const contentType = response.headers.get('Content-Type') || 'audio/wav';
+        return response.arrayBuffer().then(buffer => ({ buffer, contentType }));
+      })
+      .then(({ buffer, contentType }) => {
+        const bytes = new Uint8Array(buffer);
+        let binary = '';
+        for (let i = 0; i < bytes.length; i++) {
+          binary += String.fromCharCode(bytes[i]);
+        }
+        sendResponse({ data: btoa(binary), contentType });
+      })
+      .catch(err => {
+        sendResponse({ error: err.message });
+      });
+    return true;
   }
 });
 
