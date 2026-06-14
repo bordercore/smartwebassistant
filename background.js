@@ -23,12 +23,33 @@ chrome.runtime.onMessage.addListener ((message, sender, sendResponse) => {
       sendResponse(result.playingState || 'stopped');
     });
     return true;
-  } else if (message.action === 'ttsPlay' || message.action === 'ttsPause' || message.action === 'ttsStop') {
+  } else if (message.action === 'ttsPlay') {
+    // If the offscreen document still exists, its paused audio is intact and we
+    // just resume it. If Chrome tore it down while paused, ensureOffscreenDocument
+    // creates a fresh (empty) one, so we rebuild playback from the saved state.
+    ensureOffscreenDocument().then((existed) => {
+      if (existed) {
+        chrome.runtime.sendMessage({target: 'offscreen', action: 'ttsPlay'});
+      } else {
+        chrome.storage.session.get('ttsResumeState', (result) => {
+          if (result.ttsResumeState) {
+            chrome.runtime.sendMessage({target: 'offscreen', action: 'resumeAudio', state: result.ttsResumeState});
+          }
+        });
+      }
+    }).catch(err => {
+      error(`Offscreen document error: ${err.message}`);
+    });
+  } else if (message.action === 'ttsPause' || message.action === 'ttsStop') {
     ensureOffscreenDocument().then(() => {
       chrome.runtime.sendMessage({target: 'offscreen', action: message.action});
     }).catch(err => {
       error(`Offscreen document error: ${err.message}`);
     });
+  } else if (message.action === 'saveResumeState') {
+    chrome.storage.session.set({ ttsResumeState: message.state });
+  } else if (message.action === 'clearResumeState') {
+    chrome.storage.session.remove('ttsResumeState');
   }
 });
 
@@ -37,6 +58,8 @@ let offscreenCreating = null;
 async function ensureOffscreenDocument() {
   if (offscreenCreating) return offscreenCreating;
 
+  // Resolves to true if the offscreen document already existed, false if it was
+  // just created (meaning any prior in-memory audio state is gone).
   offscreenCreating = (async () => {
     const contexts = await chrome.runtime.getContexts({
       contextTypes: ['OFFSCREEN_DOCUMENT'],
@@ -48,11 +71,13 @@ async function ensureOffscreenDocument() {
         reasons: ['AUDIO_PLAYBACK'],
         justification: 'TTS audio playback'
       });
+      return false;
     }
+    return true;
   })();
 
   try {
-    await offscreenCreating;
+    return await offscreenCreating;
   } finally {
     offscreenCreating = null;
   }

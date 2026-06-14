@@ -4,6 +4,32 @@ let currentAudio = null;
 let stopRequested = false;
 let currentEndedResolve = null;
 
+// Resume state. Offscreen documents can't access chrome.storage, so we hand it
+// to the background service worker, which persists it in chrome.storage.session.
+// That lets playback be reconstructed if Chrome tears this document down while paused.
+let currentUrls = null;
+let currentIndex = 0;
+let currentTtsSpeed = ttsSpeedDefault;
+
+function saveResumeState(offset) {
+  if (!currentUrls) return;
+  chrome.runtime.sendMessage({
+    target: 'background',
+    action: 'saveResumeState',
+    state: {
+      urls: currentUrls,
+      index: currentIndex,
+      offset: offset || 0,
+      ttsSpeed: currentTtsSpeed,
+    },
+  });
+}
+
+function clearResumeState() {
+  currentUrls = null;
+  chrome.runtime.sendMessage({target: 'background', action: 'clearResumeState'});
+}
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.target && message.target !== 'offscreen') return;
 
@@ -17,16 +43,27 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const urls = chunks.map(chunk =>
       `https://${ttsHost}/?text=${encodeURIComponent(chunk)}&speed=${ttsSpeed}`
     );
+    clearResumeState();
     playAudioSequentially(urls, ttsSpeed);
   } else if (message.action === 'ttsPause') {
     if (currentAudio) {
       currentAudio.pause();
+      saveResumeState(currentAudio.currentTime);
       chrome.runtime.sendMessage({target: 'background', action: 'setIsPlaying', state: 'paused'});
     }
   } else if (message.action === 'ttsPlay') {
+    // The offscreen document still existed, so the paused audio is intact.
     if (currentAudio) {
       currentAudio.play();
       chrome.runtime.sendMessage({target: 'background', action: 'setIsPlaying', state: 'playing'});
+    }
+  } else if (message.action === 'resumeAudio') {
+    // This document was just recreated after Chrome tore down the paused one.
+    // Rebuild playback from the state the background persisted on pause.
+    const state = message.state;
+    if (state && state.urls && state.index < state.urls.length) {
+      chrome.runtime.sendMessage({target: 'background', action: 'setIsPlaying', state: 'playing'});
+      playAudioSequentially(state.urls, state.ttsSpeed, state.index, state.offset);
     }
   } else if (message.action === 'ttsStop') {
     stopRequested = true;
@@ -39,13 +76,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       currentEndedResolve();
       currentEndedResolve = null;
     }
+    clearResumeState();
     chrome.runtime.sendMessage({target: 'background', action: 'setIsPlaying', state: 'stopped'});
   }
 });
 
-async function playAudioSequentially(urls, ttsSpeed) {
+async function playAudioSequentially(urls, ttsSpeed, startIndex = 0, startOffset = 0) {
   const numChunks = urls.length;
   stopRequested = false;
+  currentUrls = urls;
+  currentTtsSpeed = ttsSpeed;
 
   if (numChunks === 0) {
     chrome.runtime.sendMessage({target: 'background', action: 'playingStopped'});
@@ -53,11 +93,12 @@ async function playAudioSequentially(urls, ttsSpeed) {
   }
 
   // Kick off pre-fetch for the first chunk immediately
-  let nextFetch = fetchAudio(urls[0]);
+  let nextFetch = fetchAudio(urls[startIndex]);
   let nextFetchConsumed = false;
 
-  for (let index = 0; index < numChunks; index++) {
+  for (let index = startIndex; index < numChunks; index++) {
     if (stopRequested) break;
+    currentIndex = index;
 
     let blobUrl;
     nextFetchConsumed = true;
@@ -87,6 +128,12 @@ async function playAudioSequentially(urls, ttsSpeed) {
 
     const audioElement = new Audio(blobUrl);
     audioElement.playbackRate = ttsSpeed;
+    // On a resumed session, seek into the chunk we were paused in.
+    if (index === startIndex && startOffset > 0) {
+      audioElement.addEventListener('loadedmetadata', () => {
+        try { audioElement.currentTime = startOffset; } catch (err) {}
+      }, {once: true});
+    }
     currentAudio = audioElement;
 
     const progress = Math.floor(index / numChunks * 100);
@@ -119,6 +166,7 @@ async function playAudioSequentially(urls, ttsSpeed) {
   }
 
   if (!stopRequested) {
+    clearResumeState();
     chrome.runtime.sendMessage({target: 'background', action: 'playingStopped'});
   }
 }

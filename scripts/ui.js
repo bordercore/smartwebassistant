@@ -405,6 +405,7 @@ export function initUI () {
       statusDisplay.textContent = message.message;
     } else if (message.action === 'playingStopped') {
       document.getElementById('ttsButton').textContent = 'Play';
+      isPlayingState = 'stopped';
       updateStatus ('Ready');
     }
   }
